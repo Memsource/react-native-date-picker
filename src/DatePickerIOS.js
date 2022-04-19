@@ -3,13 +3,21 @@ import {
   StyleSheet,
   View,
   requireNativeComponent,
-  NativeModules,
+  NativeModules, NativeEventEmitter,
 } from 'react-native'
 
 const RCTDatePickerIOS = requireNativeComponent('RNDatePicker')
 
 export default class DatePickerIOS extends React.Component {
   _picker = null
+
+  componentDidMount() {
+    const eventEmitter = new NativeEventEmitter(NativeModules.DatePickerEventEmitterModule)
+
+    this.eventListener = eventEmitter.addListener('neutralButtonPress', (event) => {
+      this.props.onNeutral && this.props.onNeutral()
+    })
+  }
 
   componentDidUpdate() {
     if (this.props.date) {
@@ -22,10 +30,14 @@ export default class DatePickerIOS extends React.Component {
     }
   }
 
+  componentWillUnmount() {
+    this.eventListener.remove()
+  }
+
   _onChange = (event) => {
     const nativeTimeStamp = event.nativeEvent.timestamp
     this.props.onDateChange &&
-      this.props.onDateChange(new Date(nativeTimeStamp))
+    this.props.onDateChange(new Date(nativeTimeStamp))
   }
 
   _toIosProps = (props) => {
@@ -52,25 +64,25 @@ export default class DatePickerIOS extends React.Component {
     if (props.modal) {
       if (props.open && isClosed) {
         NativeModules.RNDatePickerManager.openPicker(
-          props,
-          this._onConfirm,
-          props.onCancel
+            props,
+            this._onConfirm,
+            props.onCancel
         )
       }
       return null
     }
 
     return (
-      <RCTDatePickerIOS
-        key={props.textColor} // preventing "Today" string keep old text color when text color changes
-        ref={(picker) => {
-          this._picker = picker
-        }}
-        onChange={this._onChange}
-        onStartShouldSetResponder={() => true}
-        onResponderTerminationRequest={() => false}
-        {...props}
-      />
+        <RCTDatePickerIOS
+            key={props.textColor} // preventing "Today" string keep old text color when text color changes
+            ref={(picker) => {
+              this._picker = picker
+            }}
+            onChange={this._onChange}
+            onStartShouldSetResponder={() => true}
+            onResponderTerminationRequest={() => false}
+            {...props}
+        />
     )
   }
   

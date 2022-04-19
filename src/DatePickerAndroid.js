@@ -1,14 +1,14 @@
 import React from 'react'
-import { requireNativeComponent, NativeModules } from 'react-native'
+import { requireNativeComponent, NativeModules, NativeEventEmitter } from 'react-native'
 
 function addMinutes(date, minutesToAdd) {
   return new Date(date.valueOf() + minutesToAdd * 60 * 1000)
 }
 
 const NativeDatePicker = requireNativeComponent(
-  `DatePickerManager`,
-  DatePickerAndroid,
-  { nativeOnly: { onChange: true } }
+    `DatePickerManager`,
+    DatePickerAndroid,
+    { nativeOnly: { onChange: true } }
 )
 
 const height = 180
@@ -16,6 +16,20 @@ const timeModeWidth = 240
 const defaultWidth = 310
 
 class DatePickerAndroid extends React.PureComponent {
+  componentDidMount() {
+    const eventEmitter = new NativeEventEmitter(NativeModules.RNDatePicker);
+
+    this.eventListener = eventEmitter.addListener('nativeButtonPress', (event) => {
+      if(event.eventProperty === 'neutralButton') {
+        this.props.onNeutral && this.props.onNeutral()
+      }
+    })
+  }
+
+  componentWillUnmount() {
+    this.eventListener.remove()
+  }
+
   render() {
     const props = this.getProps()
     const isClosed = this._isCurrentlyClosed();
@@ -24,9 +38,9 @@ class DatePickerAndroid extends React.PureComponent {
     if (props.modal) {
       if (props.open && isClosed) {
         NativeModules.RNDatePicker.openPicker(
-          props,
-          this._onConfirm,
-          this.props.onCancel
+            props,
+            this._onConfirm,
+            this.props.onCancel,
         )
       }
       return null
@@ -60,12 +74,12 @@ class DatePickerAndroid extends React.PureComponent {
   }
 
   _maximumDate = () =>
-    this.props.maximumDate &&
-    this._toIsoWithTimeZoneOffset(this.props.maximumDate)
+      this.props.maximumDate &&
+      this._toIsoWithTimeZoneOffset(this.props.maximumDate)
 
   _minimumDate = () =>
-    this.props.minimumDate &&
-    this._toIsoWithTimeZoneOffset(this.props.minimumDate)
+      this.props.minimumDate &&
+      this._toIsoWithTimeZoneOffset(this.props.minimumDate)
 
   _date = () => this._toIsoWithTimeZoneOffset(this.props.date)
 

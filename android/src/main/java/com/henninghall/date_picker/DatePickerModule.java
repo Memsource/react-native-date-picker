@@ -7,6 +7,8 @@ import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
+import com.henninghall.date_picker.Emitter;
+
 import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.Dynamic;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -14,8 +16,12 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.ReadableMapKeySetIterator;
+import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.bridge.Arguments;
 
 import net.time4j.android.ApplicationStarter;
+
+import java.util.Objects;
 
 public class DatePickerModule extends ReactContextBaseJavaModule {
 
@@ -45,10 +51,11 @@ public class DatePickerModule extends ReactContextBaseJavaModule {
             ReadableMap props, final PickerView picker, final Callback onConfirm, final Callback onCancel) {
         String title = props.getString("title");
         String confirmText = props.getString("confirmText");
+        String neutralText = props.getString("neutralText");
         final String cancelText = props.getString("cancelText");
         final View pickerWithMargin = withTopMargin(picker);
 
-        return new AlertDialog.Builder(DatePickerPackage.context.getCurrentActivity())
+        AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(DatePickerPackage.context.getCurrentActivity())
                 .setTitle(title)
                 .setCancelable(true)
                 .setView(pickerWithMargin)
@@ -69,8 +76,21 @@ public class DatePickerModule extends ReactContextBaseJavaModule {
                     public void onCancel(DialogInterface dialogInterface) {
                         onCancel.invoke();
                     }
-                })
-                .create();
+                });
+
+        if(neutralText != null) {
+            dialogBuilder.setNeutralButton(neutralText, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int id) {
+                    WritableMap params = Arguments.createMap();
+                    params.putString("eventProperty", "neutralButton");
+
+                    Emitter.sendEvent("nativeButtonPress", params);
+                    dialog.dismiss();
+                }
+            });
+        }
+
+        return dialogBuilder.create();
     }
 
     private PickerView createPicker(ReadableMap props){
